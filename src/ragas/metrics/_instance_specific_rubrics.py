@@ -2,16 +2,14 @@ from __future__ import annotations
 
 import typing as t
 
-from pydantic import Field
-
 from ragas.dataset_schema import MultiTurnSample, SingleTurnSample
 from ragas.metrics._domain_specific_rubrics import (
-    MultiTurnInputWithoutRubric,
-    ScoreFeedback,
-    SingleTurnInputWithoutRubric,
+    MultiTurnInput,
+    MultiTurnPrompt,
+    SingleTurnInput,
+    SingleTurnPrompt,
 )
 from ragas.metrics.base import (
-    MetricOutputType,
     MetricType,
     MetricWithLLM,
     MultiTurnMetric,
@@ -25,37 +23,12 @@ if t.TYPE_CHECKING:
     from ragas.llms import BaseRagasLLM
 
 
-class SingleTurnInputWithRubric(SingleTurnInputWithoutRubric):
-    rubrics: t.Dict[str, str] = Field(
-        ..., description="The rubric for evaluating this instance"
-    )
-
-
-class MultiTurnInputWithRubric(MultiTurnInputWithoutRubric):
-    rubrics: t.Dict[str, str] = Field(
-        ..., description="The rubric for evaluating this instance"
-    )
-
-
-class SingleTurnPrompt(PydanticPrompt[SingleTurnInputWithRubric, ScoreFeedback]):
-    instruction = ""  # this will be set in the constructor
-    input_model = SingleTurnInputWithRubric
-    output_model = ScoreFeedback
-
-
-class MultiTurnPrompt(PydanticPrompt[MultiTurnInputWithRubric, ScoreFeedback]):
-    instruction = ""  # this will be set in the constructor
-    input_model = MultiTurnInputWithRubric
-    output_model = ScoreFeedback
-
-
 class InstanceRubrics(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
     def __init__(
         self,
         name: str = "instance_rubrics",
         llm: t.Optional[BaseRagasLLM] = None,
         required_columns: t.Optional[t.Dict[MetricType, t.Set[str]]] = None,
-        output_type: t.Optional[MetricOutputType] = MetricOutputType.DISCRETE,
         single_turn_prompt: t.Optional[PydanticPrompt] = None,
         multi_turn_prompt: t.Optional[PydanticPrompt] = None,
         max_retries: int = 1,
@@ -75,7 +48,6 @@ class InstanceRubrics(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
                 "reference:optional",
             },
         }
-        self.output_type = output_type
         super().__init__(name=name, llm=llm, _required_columns=self._required_columns)
 
         self.single_turn_prompt = single_turn_prompt or SingleTurnPrompt()
@@ -101,7 +73,7 @@ class InstanceRubrics(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
 
         if rubrics is None:
             raise ValueError(f"Rubrics are not set for the sample: {row}")
-        prompt_input = SingleTurnInputWithRubric(
+        prompt_input = SingleTurnInput(
             user_input=user_input,
             response=response,
             reference=reference,
@@ -129,7 +101,7 @@ class InstanceRubrics(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
         interaction = sample.pretty_repr()
         reference = sample.reference
         rubrics = sample.rubrics
-        prompt_input = MultiTurnInputWithRubric(
+        prompt_input = MultiTurnInput(
             user_input=interaction,
             reference=reference,
             rubrics=rubrics,

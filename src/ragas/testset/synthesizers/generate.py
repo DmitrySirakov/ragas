@@ -194,7 +194,7 @@ class TestsetGenerator:
             raise_exceptions=raise_exceptions,
         )
 
-    def generate_with_llamaindex_docs(
+    def generate_with_llamainчdex_docs(
         self,
         documents: t.Sequence[LlamaIndexDocument],
         testset_size: int,
@@ -458,7 +458,7 @@ class TestsetGenerator:
             testsets.append(TestsetSample(eval_sample=sample, **additional_info))
         testset = Testset(samples=testsets, cost_cb=cost_cb)
         testset_generation_rm.on_chain_end({"testset": testset})
-
+x
         # tracking how many samples were generated
         track(
             TestsetGenerationEvent(

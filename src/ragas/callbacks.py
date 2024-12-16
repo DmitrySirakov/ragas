@@ -133,15 +133,12 @@ class MetricTrace(dict):
 
 def parse_run_traces(
     traces: t.Dict[str, ChainRun],
-    parent_run_id: t.Optional[str] = None,
 ) -> t.List[t.Dict[str, t.Any]]:
-
     root_traces = [
         chain_trace
         for chain_trace in traces.values()
-        if chain_trace.parent_run_id == parent_run_id
+        if chain_trace.parent_run_id is None
     ]
-
     if len(root_traces) > 1:
         raise ValueError(
             "Multiple root traces found! This is a bug on our end, please file an issue and we will fix it ASAP :)"
@@ -162,11 +159,9 @@ def parse_run_traces(
             prompt_traces = {}
             for i, prompt_uuid in enumerate(metric_trace.children):
                 prompt_trace = traces[prompt_uuid]
-                output = prompt_trace.outputs.get("output", {})
-                output = output[0] if isinstance(output, list) else output
-                prompt_traces[f"{prompt_trace.name}"] = {
+                prompt_traces[f"{i}_{prompt_trace.name}"] = {
                     "input": prompt_trace.inputs.get("data", {}),
-                    "output": output,
+                    "output": prompt_trace.outputs.get("output", {}),
                 }
             metric_traces[f"{metric_trace.name}"] = prompt_traces
         parased_traces.append(metric_traces)

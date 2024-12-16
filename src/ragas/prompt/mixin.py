@@ -21,21 +21,14 @@ class PromptMixin:
     eg: [BaseSynthesizer][ragas.testset.synthesizers.base.BaseSynthesizer], [MetricWithLLM][ragas.metrics.base.MetricWithLLM]
     """
 
-    def _get_prompts(self) -> t.Dict[str, PydanticPrompt]:
-
-        prompts = {}
-        for key, value in inspect.getmembers(self):
-            if isinstance(value, PydanticPrompt):
-                prompts.update({key: value})
-        return prompts
-
     def get_prompts(self) -> t.Dict[str, PydanticPrompt]:
         """
         Returns a dictionary of prompts for the class.
         """
         prompts = {}
-        for _, value in self._get_prompts().items():
-            prompts.update({value.name: value})
+        for name, value in inspect.getmembers(self):
+            if isinstance(value, PydanticPrompt):
+                prompts.update({name: value})
         return prompts
 
     def set_prompts(self, **prompts):
@@ -48,7 +41,6 @@ class PromptMixin:
             If the prompt is not an instance of `PydanticPrompt`.
         """
         available_prompts = self.get_prompts()
-        name_to_var = {v.name: k for k, v in self._get_prompts().items()}
         for key, value in prompts.items():
             if key not in available_prompts:
                 raise ValueError(
@@ -58,7 +50,7 @@ class PromptMixin:
                 raise ValueError(
                     f"Prompt with name '{key}' must be an instance of 'ragas.prompt.PydanticPrompt'"
                 )
-            setattr(self, name_to_var[key], value)
+            setattr(self, key, value)
 
     async def adapt_prompts(
         self, language: str, llm: BaseRagasLLM, adapt_instruction: bool = False

@@ -8,12 +8,7 @@ import numpy as np
 
 from ragas.dataset_schema import SingleTurnSample
 from ragas.embeddings.base import HuggingfaceEmbeddings
-from ragas.metrics.base import (
-    MetricOutputType,
-    MetricType,
-    MetricWithEmbeddings,
-    SingleTurnMetric,
-)
+from ragas.metrics.base import MetricType, MetricWithEmbeddings, SingleTurnMetric
 
 if t.TYPE_CHECKING:
     from langchain_core.callbacks.base import Callbacks
@@ -46,7 +41,6 @@ class SemanticSimilarity(MetricWithEmbeddings, SingleTurnMetric):
     _required_columns: t.Dict[MetricType, t.Set[str]] = field(
         default_factory=lambda: {MetricType.SINGLE_TURN: {"reference", "response"}}
     )
-    output_type = MetricOutputType.CONTINUOUS
     is_cross_encoder: bool = False
     threshold: t.Optional[float] = None
 

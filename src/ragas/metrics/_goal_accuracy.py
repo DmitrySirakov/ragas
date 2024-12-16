@@ -6,12 +6,7 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel, Field
 
 from ragas.dataset_schema import MultiTurnSample
-from ragas.metrics.base import (
-    MetricOutputType,
-    MetricType,
-    MetricWithLLM,
-    MultiTurnMetric,
-)
+from ragas.metrics.base import MetricType, MetricWithLLM, MultiTurnMetric
 from ragas.prompt import PydanticPrompt
 
 if t.TYPE_CHECKING:
@@ -111,7 +106,6 @@ class AgentGoalAccuracyWithReference(MetricWithLLM, MultiTurnMetric):
             }
         }
     )
-    output_type: t.Optional[MetricOutputType] = MetricOutputType.BINARY
     workflow_prompt: PydanticPrompt = field(
         default_factory=lambda: InferGoalOutcomePrompt()
     )

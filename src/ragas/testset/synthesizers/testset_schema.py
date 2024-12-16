@@ -15,8 +15,7 @@ from ragas.dataset_schema import (
     RagasDataset,
     SingleTurnSample,
 )
-from ragas.exceptions import UploadException
-from ragas.sdk import RAGAS_API_URL, RAGAS_APP_URL, upload_packet
+from ragas.utils import RAGAS_API_URL
 
 
 class TestsetSample(BaseSample):
@@ -41,7 +40,7 @@ class TestsetPacket(BaseModel):
     """
 
     samples_original: t.List[TestsetSample]
-    run_id: str
+    run_id: str = Field(default_factory=lambda: str(uuid4()))
     created_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
 
@@ -57,7 +56,6 @@ class Testset(RagasDataset[TestsetSample]):
     """
 
     samples: t.List[TestsetSample]
-    run_id: str = field(default_factory=lambda: str(uuid4()), repr=False, compare=False)
     cost_cb: t.Optional[CostCallbackHandler] = field(default=None, repr=False)
 
     def to_evaluation_dataset(self) -> EvaluationDataset:
@@ -137,40 +135,16 @@ class Testset(RagasDataset[TestsetSample]):
         )
 
     def upload(self, base_url: str = RAGAS_API_URL, verbose: bool = True) -> str:
-        packet = TestsetPacket(samples_original=self.samples, run_id=self.run_id)
-        response = upload_packet(
-            path="/alignment/testset",
-            data_json_string=packet.model_dump_json(),
-            base_url=base_url,
+        import requests
+
+        packet = TestsetPacket(samples_original=self.samples)
+        response = requests.post(
+            f"{base_url}/alignment/testset", json=packet.model_dump()
         )
-        testset_endpoint = f"{RAGAS_APP_URL}/dashboard/alignment/testset/{self.run_id}"
-        if response.status_code == 409:
-            # this testset already exists
-            if verbose:
-                print(f"Testset already exists. View at {testset_endpoint}")
-            return testset_endpoint
-        elif response.status_code != 200:
-            # any other error
-            raise UploadException(
-                status_code=response.status_code,
-                message=f"Failed to upload results: {response.text}",
-            )
+        if response.status_code != 200:
+            raise Exception(f"Failed to upload results: {response.text}")
+
+        testset_endpoint = f"https://app.ragas.io/alignment/testset/{packet.run_id}"
         if verbose:
             print(f"Testset uploaded! View at {testset_endpoint}")
         return testset_endpoint
-
-    @classmethod
-    def from_annotated(cls, path: str) -> Testset:
-        """
-        Loads a testset from an annotated JSON file from app.ragas.io.
-        """
-        import json
-
-        with open(path, "r") as f:
-            annotated_testset = json.load(f)
-
-        samples = []
-        for sample in annotated_testset:
-            if sample["approval_status"] == "approved":
-                samples.append(TestsetSample(**sample))
-        return cls(samples=samples)

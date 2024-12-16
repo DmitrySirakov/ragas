@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import typing as t
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import field
 from typing import List
 
@@ -10,15 +10,11 @@ import numpy as np
 from langchain_core.embeddings import Embeddings
 from langchain_openai.embeddings import OpenAIEmbeddings
 from pydantic.dataclasses import dataclass
-from pydantic_core import CoreSchema, core_schema
 
-from ragas.cache import CacheInterface, cacher
 from ragas.run_config import RunConfig, add_async_retry, add_retry
 
 if t.TYPE_CHECKING:
     from llama_index.core.base.embeddings.base import BaseEmbedding
-    from pydantic import GetCoreSchemaHandler
-
 
 DEFAULT_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
@@ -36,20 +32,6 @@ class BaseRagasEmbeddings(Embeddings, ABC):
     """
 
     run_config: RunConfig
-    cache: t.Optional[CacheInterface] = None
-
-    def __init__(self, cache: t.Optional[CacheInterface] = None):
-        super().__init__()
-        self.cache = cache
-        if self.cache is not None:
-            self.embed_query = cacher(cache_backend=self.cache)(self.embed_query)
-            self.embed_documents = cacher(cache_backend=self.cache)(
-                self.embed_documents
-            )
-            self.aembed_query = cacher(cache_backend=self.cache)(self.aembed_query)
-            self.aembed_documents = cacher(cache_backend=self.cache)(
-                self.aembed_documents
-            )
 
     async def embed_text(self, text: str, is_async=True) -> List[float]:
         """
@@ -76,28 +58,11 @@ class BaseRagasEmbeddings(Embeddings, ABC):
             )
             return await loop.run_in_executor(None, embed_documents_with_retry, texts)
 
-    @abstractmethod
-    async def aembed_query(self, text: str) -> List[float]: ...
-
-    @abstractmethod
-    async def aembed_documents(self, texts: List[str]) -> t.List[t.List[float]]: ...
-
     def set_run_config(self, run_config: RunConfig):
         """
         Set the run configuration for the embedding operations.
         """
         self.run_config = run_config
-
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: t.Any, handler: GetCoreSchemaHandler
-    ) -> CoreSchema:
-        """
-        Define how Pydantic generates a schema for BaseRagasEmbeddings.
-        """
-        return core_schema.no_info_after_validator_function(
-            cls, core_schema.is_instance_schema(cls)  # The validator function
-        )
 
 
 class LangchainEmbeddingsWrapper(BaseRagasEmbeddings):
@@ -106,12 +71,8 @@ class LangchainEmbeddingsWrapper(BaseRagasEmbeddings):
     """
 
     def __init__(
-        self,
-        embeddings: Embeddings,
-        run_config: t.Optional[RunConfig] = None,
-        cache: t.Optional[CacheInterface] = None,
+        self, embeddings: Embeddings, run_config: t.Optional[RunConfig] = None
     ):
-        super().__init__(cache=cache)
         self.embeddings = embeddings
         if run_config is None:
             run_config = RunConfig()
@@ -214,13 +175,11 @@ class HuggingfaceEmbeddings(BaseRagasEmbeddings):
     cache_folder: t.Optional[str] = None
     model_kwargs: t.Dict[str, t.Any] = field(default_factory=dict)
     encode_kwargs: t.Dict[str, t.Any] = field(default_factory=dict)
-    cache: t.Optional[CacheInterface] = None
 
     def __post_init__(self):
         """
         Initialize the model after the object is created.
         """
-        super().__init__(cache=self.cache)
         try:
             import sentence_transformers
             from transformers import AutoConfig
@@ -252,9 +211,6 @@ class HuggingfaceEmbeddings(BaseRagasEmbeddings):
         # ensure outputs are tensors
         if "convert_to_tensor" not in self.encode_kwargs:
             self.encode_kwargs["convert_to_tensor"] = True
-
-        if self.cache is not None:
-            self.predict = cacher(cache_backend=self.cache)(self.predict)
 
     def embed_query(self, text: str) -> List[float]:
         """
@@ -327,12 +283,8 @@ class LlamaIndexEmbeddingsWrapper(BaseRagasEmbeddings):
     """
 
     def __init__(
-        self,
-        embeddings: BaseEmbedding,
-        run_config: t.Optional[RunConfig] = None,
-        cache: t.Optional[CacheInterface] = None,
+        self, embeddings: BaseEmbedding, run_config: t.Optional[RunConfig] = None
     ):
-        super().__init__(cache=cache)
         self.embeddings = embeddings
         if run_config is None:
             run_config = RunConfig()

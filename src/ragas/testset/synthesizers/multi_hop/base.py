@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 from ragas import SingleTurnSample
 from ragas.prompt import PydanticPrompt
-from ragas.testset.persona import Persona, PersonaList
+from ragas.testset.persona import PersonaList
 from ragas.testset.synthesizers.base import (
     BaseScenario,
     BaseSynthesizer,
@@ -43,9 +43,6 @@ class MultiHopScenario(BaseScenario):
 
     combinations: t.List[str]
 
-    def __repr__(self) -> str:
-        return f"MultiHopScenario(\nnodes={len(self.nodes)}\ncombinations={self.combinations}\nstyle={self.style}\nlength={self.length}\npersona={self.persona})"
-
 
 @dataclass
 class MultiHopQuerySynthesizer(BaseSynthesizer[Scenario]):
@@ -56,17 +53,16 @@ class MultiHopQuerySynthesizer(BaseSynthesizer[Scenario]):
         self,
         nodes,
         combinations: t.List[t.List[str]],
-        personas: t.List[Persona],
-        persona_item_mapping: t.Dict[str, t.List[str]],
+        persona_list: PersonaList,
+        persona_concepts,
         property_name: str,
     ) -> t.List[t.Dict[str, t.Any]]:
 
-        persona_list = PersonaList(personas=personas)
         possible_combinations = []
         for combination in combinations:
             dict = {"combination": combination}
             valid_personas = []
-            for persona, concept_list in persona_item_mapping.items():
+            for persona, concept_list in persona_concepts.mapping.items():
                 concept_list = [c.lower() for c in concept_list]
                 if (
                     any(concept.lower() in concept_list for concept in combination)
@@ -94,9 +90,6 @@ class MultiHopQuerySynthesizer(BaseSynthesizer[Scenario]):
     def sample_diverse_combinations(
         self, data: t.List[t.Dict[str, t.Any]], num_samples: int
     ) -> t.List[MultiHopScenario]:
-
-        if num_samples < 1:
-            raise ValueError("number of samples to generate should be greater than 0")
 
         selected_samples = []
         combination_persona_count = defaultdict(set)
@@ -181,8 +174,8 @@ class MultiHopQuerySynthesizer(BaseSynthesizer[Scenario]):
     def make_contexts(self, scenario: MultiHopScenario) -> t.List[str]:
 
         contexts = []
-        for i, node in enumerate(scenario.nodes):
-            context = f"<{i+1}-hop>" + "\n\n" + node.properties.get("page_content", "")
+        for node in scenario.nodes:
+            context = f"{node.id}" + "\n\n" + node.properties.get("page_content", "")
             contexts.append(context)
 
         return contexts

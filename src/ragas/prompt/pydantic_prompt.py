@@ -31,7 +31,6 @@ OutputModel = t.TypeVar("OutputModel", bound=BaseModel)
 
 
 class PydanticPrompt(BasePrompt, t.Generic[InputModel, OutputModel]):
-    # these are class attributes
     input_model: t.Type[InputModel]
     output_model: t.Type[OutputModel]
     instruction: str
@@ -175,7 +174,6 @@ class PydanticPrompt(BasePrompt, t.Generic[InputModel, OutputModel]):
             If there's an error parsing the output.
         """
         callbacks = callbacks or []
-
         processed_data = self.process_input(data)
         prompt_rm, prompt_cb = new_group(
             name=self.name,

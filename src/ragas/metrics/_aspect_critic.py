@@ -8,7 +8,6 @@ from pydantic import BaseModel, Field
 
 from ragas.dataset_schema import MultiTurnSample, SingleTurnSample
 from ragas.metrics.base import (
-    MetricOutputType,
     MetricType,
     MetricWithLLM,
     MultiTurnMetric,
@@ -45,31 +44,65 @@ class AspectCriticInput(BaseModel):
     reference: t.Optional[str] = Field(
         description="The reference answer for evaluation", default=None
     )
+    criteria: str = Field(description="The criteria to evaluate the response")
 
 
 class MultiTurnAspectCriticInput(BaseModel):
-    user_input: t.Optional[str] = Field(
-        description="The input to the model", default=None
-    )
-    reference: t.Optional[str] = Field(
-        description="The reference response", default=None
-    )
+    user_input: str = Field(description="The input to the model")
+    criteria: str = Field(description="The criteria to evaluate the response")
 
 
 class SingleTurnAspectCriticPrompt(
     PydanticPrompt[AspectCriticInput, AspectCriticOutput]
 ):
-    instruction = ""
+    instruction = "Given a input and response. Evaluate the submission only using the given criteria. Use only 'Yes' (1) and 'No' (0) as verdict."
     input_model = AspectCriticInput
     output_model = AspectCriticOutput
+    examples = [
+        (
+            AspectCriticInput(
+                user_input="Who was the director of Los Alamos Laboratory?",
+                response="Einstein was the director of Los Alamos Laboratory.",
+                criteria="Is the output written in perfect grammar",
+            ),
+            AspectCriticOutput(
+                reason="the criteria for evaluation is whether the output is written in perfect grammar. In this case, the output is grammatically correct.",
+                verdict=1,
+            ),
+        ),
+        (
+            AspectCriticInput(
+                user_input="Who was the director of Los Alamos Laboratory?",
+                response="Einstein was the director of Los Alamos Laboratory.",
+                reference="J. Robert Oppenheimer was the director of Los Alamos Laboratory.",
+                criteria="Is the output written in perfect grammar",
+            ),
+            AspectCriticOutput(
+                reason="The criteria for evaluation is whether the output is written in perfect grammar. In this case, the output is grammatically incorrect.",
+                verdict=0,
+            ),
+        ),
+    ]
 
 
 class MultiTurnAspectCriticPrompt(
     PydanticPrompt[MultiTurnAspectCriticInput, AspectCriticOutput]
 ):
-    instruction = ""
+    instruction = "Given an interaction between Human, AI and Tools evaluate the interaction using the given criteria. Use only 'Yes' (1) and 'No' (0) as verdict."
     input_model = MultiTurnAspectCriticInput
     output_model = AspectCriticOutput
+    examples = [
+        (
+            MultiTurnAspectCriticInput(
+                user_input="""Human: Hey, book a table at the nearest best Chinese restaurant for 8:00pm\nAI: Sure, let me find the best options for you.\nTools:\n  restaurant_search: {'cuisine': 'Chinese', 'time': '8:00pm'}\nToolOutput: Found a few options: 1. Golden Dragon, 2. Jade Palace\nAI: I found some great options: Golden Dragon and Jade Palace. Which one would you prefer?\nHuman: Let's go with Golden Dragon.\nAI: Great choice! I'll book a table for 8:00pm at Golden Dragon.\nTools:\n  restaurant_book: {'name': 'Golden Dragon', 'time': '8:00pm'}\nToolOutput: Table booked at Golden Dragon for 8:00pm.\nAI: Your table at Golden Dragon is booked for 8:00pm. Enjoy your meal!\nHuman: thanks""",
+                criteria="Does the AI use helpful language to guide the user through the interaction?",
+            ),
+            AspectCriticOutput(
+                reason="The criteria for evaluation is whether the AI uses helpful language to guide the user through the interaction. In this case, the AI uses helpful language to guide the user through the interaction.",
+                verdict=1,
+            ),
+        )
+    ]
 
 
 class AspectCritic(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
@@ -95,7 +128,6 @@ class AspectCritic(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
         definition: str,
         llm: t.Optional[BaseRagasLLM] = None,
         required_columns: t.Optional[t.Dict[MetricType, t.Set[str]]] = None,
-        output_type: t.Optional[MetricOutputType] = MetricOutputType.BINARY,
         single_turn_prompt: t.Optional[PydanticPrompt] = None,
         multi_turn_prompt: t.Optional[PydanticPrompt] = None,
         strictness: int = 1,
@@ -110,47 +142,28 @@ class AspectCritic(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
                 "reference_contexts:optional",
             },
             MetricType.MULTI_TURN: {
-                "user_input:optional",
-                "reference:optional",
+                "user_input",
             },
         }
         super().__init__(
             name=name,
             _required_columns=self._required_columns,
             llm=llm,
-            output_type=output_type,
         )
 
-        self._definition = definition
+        self.definition = definition
         self.single_turn_prompt = single_turn_prompt or SingleTurnAspectCriticPrompt()
         self.multi_turn_prompt = multi_turn_prompt or MultiTurnAspectCriticPrompt()
         self.max_retries = max_retries
 
-        # update the instruction for the prompts with the definition
-        instruction = f"Evaluate the Input based on the criterial defined. Use only 'Yes' (1) and 'No' (0) as verdict.\nCriteria Definition: {self._definition}"
-        self.single_turn_prompt.instruction = instruction
-        self.multi_turn_prompt.instruction = instruction
-
-        # ensure odd number of checks to avoid tie in majority vote.
         self.strictness = strictness
+        # ensure odd number of checks to avoid tie in majority vote.
         self.strictness = (
             self.strictness if self.strictness % 2 != 0 else self.strictness + 1
         )
 
     def __repr__(self) -> str:
-        return f"{self.name}(definition='{self._definition}', required_columns={self.required_columns}, llm={self.llm})"
-
-    @property
-    def definition(self) -> str:
-        return self._definition
-
-    @definition.setter
-    def definition(self, value: str) -> None:
-        self._definition = value
-        # Update the instruction for both prompts with the new definition
-        instruction = f"Evaluate the Input based on the criterial defined. Use only 'Yes' (1) and 'No' (0) as verdict.\nCriteria Definition: {self._definition}"
-        self.single_turn_prompt.instruction = instruction
-        self.multi_turn_prompt.instruction = instruction
+        return f"{self.name}(definition='{self.definition}', required_columns={self.required_columns}, llm={self.llm})"
 
     def _compute_score(
         self, safe_loaded_responses: t.List[AspectCriticOutput]
@@ -185,6 +198,7 @@ class AspectCritic(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
             retrieved_contexts=context,
             reference=reference,
             reference_contexts=reference_contexts,
+            criteria=self.definition,
         )
 
         response = await self.single_turn_prompt.generate(
@@ -203,6 +217,7 @@ class AspectCritic(MetricWithLLM, SingleTurnMetric, MultiTurnMetric):
         interaction = sample.pretty_repr()
         prompt_input = MultiTurnAspectCriticInput(
             user_input=interaction,
+            criteria=self.definition,
         )
         response = await self.multi_turn_prompt.generate(
             data=prompt_input,

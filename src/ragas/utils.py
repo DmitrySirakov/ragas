@@ -20,6 +20,9 @@ DEBUG_ENV_VAR = "RAGAS_DEBUG"
 RAGAS_SUPPORTED_LANGUAGE_CODES = {
     v.__name__.lower(): k for k, v in LANGUAGE_CODES.items()
 }
+RAGAS_SUPPORTED_LANGUAGE_CODES['russian_old'] = 'ru_old'
+# endpoint for uploading results
+RAGAS_API_URL = "https://api.ragas.io"
 
 
 @lru_cache(maxsize=1)
@@ -83,15 +86,15 @@ def is_nan(x):
         return False
 
 
-def get_metric_language(metric: Metric) -> str:
+def get_feature_language(feature: Metric) -> t.Optional[str]:
     from ragas.prompt import BasePrompt
 
     languags = [
         value.language
-        for _, value in vars(metric).items()
+        for _, value in vars(feature).items()
         if isinstance(value, BasePrompt)
     ]
-    return languags[0] if len(languags) > 0 else ""
+    return languags[0] if len(languags) > 0 else None
 
 
 def deprecated(

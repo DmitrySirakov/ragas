@@ -7,8 +7,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from ragas.prompt import PydanticPrompt
-from ragas.testset.graph import KnowledgeGraph
-from ragas.testset.persona import Persona
+from ragas.testset.graph import KnowledgeGraph, Node
+from ragas.testset.persona import Persona, PersonaList
 from ragas.testset.synthesizers.multi_hop.base import (
     MultiHopQuerySynthesizer,
     MultiHopScenario,
@@ -43,14 +43,19 @@ class MultiHopSpecificQuerySynthesizer(MultiHopQuerySynthesizer):
     theme_persona_matching_prompt: PydanticPrompt = ThemesPersonasMatchingPrompt()
     generate_query_reference_prompt: PydanticPrompt = QueryAnswerGenerationPrompt()
 
-    def get_node_clusters(self, knowledge_graph: KnowledgeGraph) -> t.List[t.Tuple]:
+    def get_node_clusters(self, knowledge_graph: KnowledgeGraph) -> t.List[t.Set[Node]]:
 
-        node_clusters = knowledge_graph.find_two_nodes_single_rel(
+        cluster_dict = knowledge_graph.find_direct_clusters(
             relationship_condition=lambda rel: (
                 True if rel.type == self.relation_type else False
             )
         )
-        logger.info("found %d clusters", len(node_clusters))
+        logger.info("found %d clusters", len(cluster_dict))
+        node_clusters = []
+        for key_node, list_of_nodes in cluster_dict.items():
+            for node in list_of_nodes:
+                node_clusters.append((key_node, node))
+
         return node_clusters
 
     async def _generate_scenarios(
@@ -73,21 +78,30 @@ class MultiHopSpecificQuerySynthesizer(MultiHopQuerySynthesizer):
         4. Return the list of scenarios of length n
         """
 
-        triplets = self.get_node_clusters(knowledge_graph)
+        node_clusters = self.get_node_clusters(knowledge_graph)
 
-        if len(triplets) == 0:
+        if len(node_clusters) == 0:
             raise ValueError(
                 "No clusters found in the knowledge graph. Try changing the relationship condition."
             )
 
-        num_sample_per_cluster = int(np.ceil(n / len(triplets)))
+        num_sample_per_cluster = int(np.ceil(n / len(node_clusters)))
+
+        valid_relationships = [
+            rel
+            for rel in knowledge_graph.relationships
+            if rel.type == self.relation_type
+        ]
         scenarios = []
 
-        for triplet in triplets:
+        for cluster in node_clusters:
             if len(scenarios) < n:
-                node_a, node_b = triplet[0], triplet[-1]
+                key_node, node = cluster
                 overlapped_items = []
-                overlapped_items = triplet[1].properties["overlapped_items"]
+                for rel in valid_relationships:
+                    if rel.source == key_node and rel.target == node:
+                        overlapped_items = rel.get_property("overlapped_items")
+                        break
                 if overlapped_items:
                     themes = list(dict(overlapped_items).keys())
                     prompt_input = ThemesPersonasInput(
@@ -100,10 +114,10 @@ class MultiHopSpecificQuerySynthesizer(MultiHopQuerySynthesizer):
                     )
                     overlapped_items = [list(item) for item in overlapped_items]
                     base_scenarios = self.prepare_combinations(
-                        [node_a, node_b],
+                        [key_node, node],
                         overlapped_items,
-                        personas=persona_list,
-                        persona_item_mapping=persona_concepts.mapping,
+                        PersonaList(personas=persona_list),
+                        persona_concepts,
                         property_name=self.property_name,
                     )
                     base_scenarios = self.sample_diverse_combinations(

@@ -9,7 +9,6 @@ from pydantic import BaseModel, Field
 
 from ragas.dataset_schema import SingleTurnSample
 from ragas.metrics.base import (
-    MetricOutputType,
     MetricType,
     MetricWithLLM,
     SingleTurnMetric,
@@ -173,7 +172,6 @@ class Faithfulness(MetricWithLLM, SingleTurnMetric):
             }
         }
     )
-    output_type: t.Optional[MetricOutputType] = MetricOutputType.CONTINUOUS
     nli_statements_message: PydanticPrompt = field(default_factory=NLIStatementPrompt)
     statement_prompt: PydanticPrompt = field(default_factory=LongFormAnswerPrompt)
     sentence_segmenter: t.Optional[HasSegmentMethod] = None
@@ -223,7 +221,11 @@ class Faithfulness(MetricWithLLM, SingleTurnMetric):
 
         text, question = row["response"], row["user_input"]
         sentences = self.sentence_segmenter.segment(text)
-        sentences_with_index = {i: sentence for i, sentence in enumerate(sentences)}
+        sentences_with_index = {
+            i: sentence
+            for i, sentence in enumerate(sentences)
+            if sentence.strip().endswith((".", "。", "!", "！"))
+        }
 
         statements_simplified = await self.statement_prompt.generate(
             llm=self.llm,
@@ -316,7 +318,7 @@ class FaithfulnesswithHHEM(Faithfulness):
         assert self.llm is not None, "LLM is not set"
 
         statements_simplified = await self._create_statements(row, callbacks)
-        if len(statements_simplified.sentences) == 0:
+        if statements_simplified is None:
             return np.nan
 
         statements = []
@@ -330,9 +332,7 @@ class FaithfulnesswithHHEM(Faithfulness):
             batch_scores = (
                 self.nli_classifier.predict(input_pairs).cpu().detach().round()
             )
-            # convert tensor to list of floats
-            scores.extend(batch_scores.tolist())
-
+            scores += batch_scores
         return sum(scores) / len(scores)
 
 

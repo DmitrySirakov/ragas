@@ -61,7 +61,6 @@ from ragas.metrics._tool_call_accuracy import ToolCallAccuracy
 from ragas.metrics._topic_adherence import TopicAdherenceScore
 from ragas.metrics.base import (
     Metric,
-    MetricOutputType,
     MetricType,
     MetricWithEmbeddings,
     MetricWithLLM,
@@ -77,7 +76,6 @@ __all__ = [
     "MetricWithLLM",
     "SingleTurnMetric",
     "MultiTurnMetric",
-    "MetricOutputType",
     # specific metrics
     "AnswerCorrectness",
     "answer_correctness",
