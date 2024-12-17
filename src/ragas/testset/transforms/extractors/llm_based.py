@@ -1,4 +1,5 @@
 import typing as t
+from typing import Type, List, Tuple
 from dataclasses import dataclass
 
 from pydantic import BaseModel
@@ -14,18 +15,38 @@ class TextWithExtractionLimit(BaseModel):
 
 
 class SummaryExtractorPrompt(PydanticPrompt[StringIO, StringIO]):
-    instruction: str = "Summarize the given text in less than 10 sentences."
-    input_model: t.Type[StringIO] = StringIO
-    output_model: t.Type[StringIO] = StringIO
-    examples: t.List[t.Tuple[StringIO, StringIO]] = [
+    instruction: str = "Сократите данный текст до менее чем 10 предложений."
+    input_model: Type[StringIO] = StringIO
+    output_model: Type[StringIO] = StringIO
+    examples: List[Tuple[StringIO, StringIO]] = [
         (
             StringIO(
-                text="Artificial intelligence\n\nArtificial intelligence is transforming various industries by automating tasks that previously required human intelligence. From healthcare to finance, AI is being used to analyze vast amounts of data quickly and accurately. This technology is also driving innovations in areas like self-driving cars and personalized recommendations."
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800
+
+                Комбайн AMAZONE AFS 800 предназначен для эффективной уборки зерновых культур. Перед началом эксплуатации убедитесь, что уровень масла в двигателе соответствует требованиям (80 литров). Комбайн оснащен системой GPS для точного позиционирования на поле, что позволяет оптимизировать маршруты уборки и повышать производительность. Вес техники составляет 12 тонн, обеспечивая стабильность на различных типах грунта. Для управления и мониторинга параметров работы используется программное обеспечение AMAZONE Control, которое позволяет загружать карты полей и анализировать данные в реальном времени. Сенсоры YieldMaster интегрированы для измерения урожайности и помогают в принятии решений по управлению ресурсами. Регулярное техническое обслуживание, включая проверку масла и работу системы GPS, гарантирует долгий срок службы оборудования и высокую эффективность работы.
+                """
             ),
             StringIO(
-                text="AI is revolutionizing industries by automating tasks, analyzing data, and driving innovations like self-driving cars and personalized recommendations."
+                text="""\
+                Комбайн AMAZONE AFS 800 обеспечивает эффективную уборку зерновых культур с помощью системы GPS и сенсоров YieldMaster. Перед эксплуатацией необходимо проверить уровень масла (80 литров). Вес техники — 12 тонн, что гарантирует стабильность на различных грунтах. Управление осуществляется через ПО AMAZONE Control, позволяющее загружать карты полей и анализировать данные в реальном времени. Регулярное техническое обслуживание поддерживает высокую эффективность и долговечность оборудования.
+                """
             ),
-        )
+        ),
+        (
+            StringIO(
+                text="""\
+                Руководство по обслуживанию трактора AMAZONE MCX 500
+
+                Трактор AMAZONE MCX 500 разработан для выполнения широкого спектра сельскохозяйственных работ. Регулярная проверка давления в шинах должна проводиться каждую неделю для обеспечения оптимальной производительности и безопасности. Для точной калибровки весов используется модель AMAZONE ScalePro 200, которая позволяет получать точные измерения веса прицепов и навесного оборудования. Карты обработанных территорий сохраняются в системе AMAZONE FieldManager, что облегчает планирование и анализ выполненных работ. Метрики эффективности включают расход топлива и время работы двигателя, что помогает в оптимизации использования ресурсов. Вес трактора составляет 10 тонн, что позволяет работать на крутых склонах без потери мощности. Программное обеспечение AMAZONE FieldManager интегрируется с сенсорами трактора для мониторинга состояния техники и своевременного выявления возможных неполадок.
+                """
+            ),
+            StringIO(
+                text="""\
+                Трактор AMAZONE MCX 500 предназначен для разнообразных сельскохозяйственных задач с весом 10 тонн, что позволяет работать на крутых склонах. Регулярная проверка давления в шинах осуществляется каждую неделю для поддержания производительности и безопасности. Для калибровки весов используется AMAZONE ScalePro 200, обеспечивающий точные измерения. Карты обработанных территорий сохраняются в системе AMAZONE FieldManager, а метрики эффективности, такие как расход топлива и время работы двигателя, помогают оптимизировать использование ресурсов. Программное обеспечение интегрируется с сенсорами трактора для мониторинга состояния техники и предотвращения возможных неполадок.
+                """
+            ),
+        ),
     ]
 
 
@@ -34,39 +55,85 @@ class Keyphrases(BaseModel):
 
 
 class KeyphrasesExtractorPrompt(PydanticPrompt[TextWithExtractionLimit, Keyphrases]):
-    instruction: str = "Extract top max_num keyphrases from the given text."
-    input_model: t.Type[TextWithExtractionLimit] = TextWithExtractionLimit
-    output_model: t.Type[Keyphrases] = Keyphrases
-    examples: t.List[t.Tuple[TextWithExtractionLimit, Keyphrases]] = [
+    instruction: str = "Извлеките топ-ключевых фраз, не превышающих количество max_num, из данного текста."
+    input_model: Type[TextWithExtractionLimit] = TextWithExtractionLimit
+    output_model: Type[Keyphrases] = Keyphrases
+    examples: List[Tuple[TextWithExtractionLimit, Keyphrases]] = [
         (
             TextWithExtractionLimit(
-                text="Artificial intelligence\n\nArtificial intelligence is transforming various industries by automating tasks that previously required human intelligence. From healthcare to finance, AI is being used to analyze vast amounts of data quickly and accurately. This technology is also driving innovations in areas like self-driving cars and personalized recommendations.",
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800:
+                Для начала работы убедитесь, что уровень масла в двигателе составляет 80 литров. 
+                Комбайн оснащен системой GPS для точного позиционирования на поле. 
+                Вес техники составляет 12 тонн, что обеспечивает стабильность на различных типах грунта. 
+                Карты полей можно загрузить через программное обеспечение AMAZONE Control. 
+                Для измерения урожайности используются сенсоры типа YieldMaster.
+                """,
                 max_num=5,
             ),
             Keyphrases(
                 keyphrases=[
-                    "Artificial intelligence",
-                    "automating tasks",
-                    "healthcare",
-                    "self-driving cars",
-                    "personalized recommendations",
+                    "инструкция по эксплуатации",
+                    "уровень масла",
+                    "система GPS",
+                    "программное обеспечение AMAZONE Control",
+                    "сенсоры YieldMaster",
                 ]
             ),
-        )
+        ),
+        (
+            TextWithExtractionLimit(
+                text="""\
+                Обслуживание трактора AMAZONE MCX 500:
+                Регулярная проверка давления в шинах должна проводиться каждую неделю. 
+                Для точной калибровки весов используйте модель AMAZONE ScalePro 200. 
+                Карты обработанных территорий сохраняются в системе AMAZONE FieldManager. 
+                Метрики эффективности включают расход топлива и время работы двигателя. 
+                Вес трактора составляет 10 тонн, что позволяет работать на крутых склонах.
+                """,
+                max_num=5,
+            ),
+            Keyphrases(
+                keyphrases=[
+                    "обслуживание трактора",
+                    "проверка давления в шинах",
+                    "AMAZONE ScalePro 200",
+                    "AMAZONE FieldManager",
+                    "метрики эффективности",
+                ]
+            ),
+        ),
     ]
 
-
 class TitleExtractorPrompt(PydanticPrompt[StringIO, StringIO]):
-    instruction: str = "Extract the title of the given document."
-    input_model: t.Type[StringIO] = StringIO
-    output_model: t.Type[StringIO] = StringIO
-    examples: t.List[t.Tuple[StringIO, StringIO]] = [
+    instruction: str = "Извлеките заголовок из данного документа."
+    input_model: Type[StringIO] = StringIO
+    output_model: Type[StringIO] = StringIO
+    examples: List[Tuple[StringIO, StringIO]] = [
         (
             StringIO(
-                text="Deep Learning for Natural Language Processing\n\nAbstract\n\nDeep learning has revolutionized the field of natural language processing (NLP). This paper explores various deep learning models and their applications in NLP tasks such as language translation, sentiment analysis, and text generation. We discuss the advantages and limitations of different models, and provide a comprehensive overview of the current state of the art in NLP."
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800
+
+                Введение
+
+                Эта инструкция предназначена для эксплуатации комбайна AMAZONE AFS 800. Она содержит информацию о настройке, эксплуатации и техническом обслуживании оборудования.
+                """
             ),
-            StringIO(text="Deep Learning for Natural Language Processing"),
-        )
+            StringIO(text="Инструкция по эксплуатации комбайна AMAZONE AFS 800"),
+        ),
+        (
+            StringIO(
+                text="""\
+                Руководство по обслуживанию трактора AMAZONE MCX 500
+
+                Безопасность
+
+                Перед началом обслуживания убедитесь, что трактор выключен и находится в безопасном положении.
+                """
+            ),
+            StringIO(text="Руководство по обслуживанию трактора AMAZONE MCX 500"),
+        ),
     ]
 
 
@@ -76,47 +143,86 @@ class Headlines(BaseModel):
 
 class HeadlinesExtractorPrompt(PydanticPrompt[TextWithExtractionLimit, Headlines]):
     instruction: str = (
-        "Extract the most important max_num headlines from the given text that can be used to split the text into independent sections."
-        "Focus on Level 2 and Level 3 headings."
+        "Извлеките наиболее важные заголовки, не превышающие количество max_num, из данного текста, которые могут быть использованы для разделения текста на независимые разделы. "
+        "Сосредоточьтесь на заголовках уровня 2 и уровня 3."
     )
 
-    input_model: t.Type[TextWithExtractionLimit] = TextWithExtractionLimit
-    output_model: t.Type[Headlines] = Headlines
-    examples: t.List[t.Tuple[TextWithExtractionLimit, Headlines]] = [
+    input_model: Type[TextWithExtractionLimit] = TextWithExtractionLimit
+    output_model: Type[Headlines] = Headlines
+    examples: List[Tuple[TextWithExtractionLimit, Headlines]] = [
         (
             TextWithExtractionLimit(
                 text="""\
-                Introduction
-                Overview of the topic...
+                Введение
+                Обзор техники AMAZONE и ее применение в сельском хозяйстве.
 
-                Main Concepts
-                Explanation of core ideas...
+                Установка оборудования
+                Пошаговая инструкция по установке техники на рабочем месте.
 
-                Detailed Analysis
-                Techniques and methods for analysis...
+                Эксплуатация
+                Основные правила использования техники AMAZONE.
 
-                Subsection: Specialized Techniques
-                Further details on specialized techniques...
+                Поддержка и обслуживание
+                Регулярное техническое обслуживание и устранение неполадок.
 
-                Future Directions
-                Insights into upcoming trends...
+                Карты и схемы
+                Использование карт и схем для оптимизации работы техники.
 
-                Subsection: Next Steps in Research
-                Discussion of new areas of study...
+                Метрики измерения
+                Ключевые показатели эффективности и их мониторинг.
 
-                Conclusion
-                Final remarks and summary.
+                Заключение
+                Резюме и рекомендации по использованию техники AMAZONE.
                 """,
-                max_num=6,
+                max_num=7,
             ),
             Headlines(
                 headlines=[
-                    "Introduction",
-                    "Main Concepts",
-                    "Detailed Analysis",
-                    "Subsection: Specialized Techniques",
-                    "Future Directions",
-                    "Conclusion",
+                    "Введение",
+                    "Установка оборудования",
+                    "Эксплуатация",
+                    "Поддержка и обслуживание",
+                    "Карты и схемы",
+                    "Метрики измерения",
+                    "Заключение",
+                ],
+            ),
+        ),
+        (
+            TextWithExtractionLimit(
+                text="""\
+                Безопасность при работе с техникой
+                Меры предосторожности и правила безопасности.
+
+                Настройка параметров
+                Инструкция по настройке ключевых параметров техники.
+
+                Калибровка весов
+                Пошаговая процедура калибровки весов для точных измерений.
+
+                Использование сенсоров
+                Настройка и калибровка сенсоров для оптимальной работы.
+
+                Программное обеспечение
+                Обзор программных инструментов для управления техникой.
+
+                Обновления и апгрейды
+                Процесс обновления программного обеспечения и аппаратных компонентов.
+
+                Часто задаваемые вопросы
+                Ответы на наиболее распространенные вопросы пользователей.
+                """,
+                max_num=7,
+            ),
+            Headlines(
+                headlines=[
+                    "Безопасность при работе с техникой",
+                    "Настройка параметров",
+                    "Калибровка весов",
+                    "Использование сенсоров",
+                    "Программное обеспечение",
+                    "Обновления и апгрейды",
+                    "Часто задаваемые вопросы",
                 ],
             ),
         ),
@@ -129,27 +235,64 @@ class NEROutput(BaseModel):
 
 class NERPrompt(PydanticPrompt[TextWithExtractionLimit, NEROutput]):
     instruction: str = (
-        "Extract the named entities from the given text, limiting the output to the top entities. "
-        "Ensure the number of entities does not exceed the specified maximum."
+        "Извлеките именованные сущности из данного текста, ограничивая вывод наиболее значимыми сущностями. "
+        "Убедитесь, что количество сущностей не превышает указанного максимума."
     )
-    input_model: t.Type[TextWithExtractionLimit] = TextWithExtractionLimit
-    output_model: t.Type[NEROutput] = NEROutput
-    examples: t.List[t.Tuple[TextWithExtractionLimit, NEROutput]] = [
+    
+    input_model: Type[TextWithExtractionLimit] = TextWithExtractionLimit
+    output_model: Type[NEROutput] = NEROutput
+    examples: List[Tuple[TextWithExtractionLimit, NEROutput]] = [
         (
             TextWithExtractionLimit(
-                text="""Elon Musk, the CEO of Tesla and SpaceX, announced plans to expand operations to new locations in Europe and Asia.
-                This expansion is expected to create thousands of jobs, particularly in cities like Berlin and Shanghai.""",
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800:
+                Для начала работы убедитесь, что уровень масла в двигателе составляет 80 литров. 
+                Комбайн оснащен системой GPS для точного позиционирования на поле. 
+                Вес техники составляет 12 тонн, что обеспечивает стабильность на различных типах грунта. 
+                Карты полей можно загрузить через программное обеспечение AMAZONE Control. 
+                Для измерения урожайности используются сенсоры типа YieldMaster.
+                """,
                 max_num=10,
             ),
             NEROutput(
                 entities=[
-                    "Elon Musk",
-                    "Tesla",
-                    "SpaceX",
-                    "Europe",
-                    "Asia",
-                    "Berlin",
-                    "Shanghai",
+                    "комбайн AMAZONE AFS 800",
+                    "уровень масла",
+                    "80 литров",
+                    "GPS",
+                    "12 тонн",
+                    "различных типах грунта",
+                    "карты полей",
+                    "программное обеспечение AMAZONE Control",
+                    "урожайность",
+                    "сенсоры типа YieldMaster",
+                ]
+            ),
+        ),
+        (
+            TextWithExtractionLimit(
+                text="""\
+                Обслуживание трактора AMAZONE MCX 500:
+                Регулярная проверка давления в шинах должна проводиться каждую неделю. 
+                Для точной калибровки весов используйте модель AMAZONE ScalePro 200. 
+                Карты обработанных территорий сохраняются в системе AMAZONE FieldManager. 
+                Метрики эффективности включают расход топлива и время работы двигателя. 
+                Вес трактора составляет 10 тонн, что позволяет работать на крутых склонах.
+                """,
+                max_num=10,
+            ),
+            NEROutput(
+                entities=[
+                    "трактора AMAZONE MCX 500",
+                    "давления в шинах",
+                    "еждую неделю",
+                    "калибровки весов",
+                    "AMAZONE ScalePro 200",
+                    "карты обработанных территорий",
+                    "AMAZONE FieldManager",
+                    "метрики эффективности",
+                    "расход топлива",
+                    "10 тонн",
                 ]
             ),
         ),
@@ -306,18 +449,34 @@ class TopicDescription(BaseModel):
 
 
 class TopicDescriptionPrompt(PydanticPrompt[StringIO, TopicDescription]):
-    instruction: str = "Provide a concise description of the main topic(s) discussed in the following text."
-    input_model: t.Type[StringIO] = StringIO
-    output_model: t.Type[TopicDescription] = TopicDescription
-    examples: t.List[t.Tuple[StringIO, TopicDescription]] = [
+    instruction: str = "Предоставьте краткое описание основных тем, обсуждаемых в следующем тексте."
+    input_model: Type[StringIO] = StringIO
+    output_model: Type[TopicDescription] = TopicDescription
+    examples: List[Tuple[StringIO, TopicDescription]] = [
         (
             StringIO(
-                text="Quantum Computing\n\nQuantum computing leverages the principles of quantum mechanics to perform complex computations more efficiently than classical computers. It has the potential to revolutionize fields like cryptography, material science, and optimization problems by solving tasks that are currently intractable for classical systems."
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800
+
+                Комбайн AMAZONE AFS 800 предназначен для эффективной уборки зерновых культур. Перед началом эксплуатации убедитесь, что уровень масла в двигателе соответствует требованиям (80 литров). Комбайн оснащен системой GPS для точного позиционирования на поле, что позволяет оптимизировать маршруты уборки и повышать производительность. Вес техники составляет 12 тонн, обеспечивая стабильность на различных типах грунта. Для управления и мониторинга параметров работы используется программное обеспечение AMAZONE Control, которое позволяет загружать карты полей и анализировать данные в реальном времени. Сенсоры YieldMaster интегрированы для измерения урожайности и помогают в принятии решений по управлению ресурсами. Регулярное техническое обслуживание, включая проверку масла и работу системы GPS, гарантирует долгий срок службы оборудования и высокую эффективность работы.
+                """
             ),
             TopicDescription(
-                description="An introduction to quantum computing and its potential to outperform classical computers in complex computations, impacting areas such as cryptography and material science."
+                description="Описание комбайна AMAZONE AFS 800, включая его технические характеристики, систему GPS, программное обеспечение AMAZONE Control, сенсоры YieldMaster и требования к техническому обслуживанию для обеспечения эффективности и долговечности."
             ),
-        )
+        ),
+        (
+            StringIO(
+                text="""\
+                Руководство по обслуживанию трактора AMAZONE MCX 500
+
+                Трактор AMAZONE MCX 500 разработан для выполнения широкого спектра сельскохозяйственных работ. Регулярная проверка давления в шинах должна проводиться каждую неделю для обеспечения оптимальной производительности и безопасности. Для точной калибровки весов используется модель AMAZONE ScalePro 200, которая позволяет получать точные измерения веса прицепов и навесного оборудования. Карты обработанных территорий сохраняются в системе AMAZONE FieldManager, что облегчает планирование и анализ выполненных работ. Метрики эффективности включают расход топлива и время работы двигателя, что помогает в оптимизации использования ресурсов. Вес трактора составляет 10 тонн, что позволяет работать на крутых склонах без потери мощности. Программное обеспечение AMAZONE FieldManager интегрируется с сенсорами трактора для мониторинга состояния техники и своевременного выявления возможных неполадок.
+                """
+            ),
+            TopicDescription(
+                description="Обслуживание трактора AMAZONE MCX 500, включая регулярную проверку давления в шинах, калибровку весов с помощью AMAZONE ScalePro 200, использование системы AMAZONE FieldManager для хранения карт обработанных территорий и мониторинг метрик эффективности для оптимизации ресурсов."
+            ),
+        ),
     ]
 
 
@@ -350,29 +509,59 @@ class ThemesAndConcepts(BaseModel):
     output: t.List[str]
 
 
-class ThemesAndConceptsExtractorPrompt(
-    PydanticPrompt[TextWithExtractionLimit, ThemesAndConcepts]
-):
-    instruction: str = "Extract the main themes and concepts from the given text."
-    input_model: t.Type[TextWithExtractionLimit] = TextWithExtractionLimit
-    output_model: t.Type[ThemesAndConcepts] = ThemesAndConcepts
-    examples: t.List[t.Tuple[TextWithExtractionLimit, ThemesAndConcepts]] = [
+class ThemesAndConceptsExtractorPrompt(PydanticPrompt[TextWithExtractionLimit, ThemesAndConcepts]):
+    instruction: str = "Извлеките основные темы и концепции из данного текста."
+    input_model: Type[TextWithExtractionLimit] = TextWithExtractionLimit
+    output_model: Type[ThemesAndConcepts] = ThemesAndConcepts
+    examples: List[Tuple[TextWithExtractionLimit, ThemesAndConcepts]] = [
         (
             TextWithExtractionLimit(
-                text="Artificial intelligence is transforming industries by automating tasks requiring human intelligence. AI analyzes vast data quickly and accurately, driving innovations like self-driving cars and personalized recommendations.",
+                text="""\
+                Инструкция по эксплуатации комбайна AMAZONE AFS 800
+
+                Комбайн AMAZONE AFS 800 предназначен для эффективной уборки зерновых культур. Перед началом эксплуатации убедитесь, что уровень масла в двигателе соответствует требованиям (80 литров). Комбайн оснащен системой GPS для точного позиционирования на поле, что позволяет оптимизировать маршруты уборки и повышать производительность. Вес техники составляет 12 тонн, обеспечивая стабильность на различных типах грунта. Для управления и мониторинга параметров работы используется программное обеспечение AMAZONE Control, которое позволяет загружать карты полей и анализировать данные в реальном времени. Сенсоры YieldMaster интегрированы для измерения урожайности и помогают в принятии решений по управлению ресурсами. Регулярное техническое обслуживание, включая проверку масла и работу системы GPS, гарантирует долгий срок службы оборудования и высокую эффективность работы.
+                """,
                 max_num=10,
             ),
             ThemesAndConcepts(
                 output=[
-                    "Artificial intelligence",
-                    "Automation",
-                    "Data analysis",
-                    "Innovation",
-                    "Self-driving cars",
-                    "Personalized recommendations",
+                    "Эксплуатация комбайна",
+                    "Технические характеристики",
+                    "Система GPS",
+                    "Программное обеспечение AMAZONE Control",
+                    "Сенсоры YieldMaster",
+                    "Уровень масла",
+                    "Оптимизация маршрутов уборки",
+                    "Мониторинг параметров работы",
+                    "Техническое обслуживание",
+                    "Урожайность"
                 ]
             ),
-        )
+        ),
+        (
+            TextWithExtractionLimit(
+                text="""\
+                Руководство по обслуживанию трактора AMAZONE MCX 500
+
+                Трактор AMAZONE MCX 500 разработан для выполнения широкого спектра сельскохозяйственных работ. Регулярная проверка давления в шинах должна проводиться каждую неделю для обеспечения оптимальной производительности и безопасности. Для точной калибровки весов используется модель AMAZONE ScalePro 200, которая позволяет получать точные измерения веса прицепов и навесного оборудования. Карты обработанных территорий сохраняются в системе AMAZONE FieldManager, что облегчает планирование и анализ выполненных работ. Метрики эффективности включают расход топлива и время работы двигателя, что помогает в оптимизации использования ресурсов. Вес трактора составляет 10 тонн, что позволяет работать на крутых склонах без потери мощности. Программное обеспечение AMAZONE FieldManager интегрируется с сенсорами трактора для мониторинга состояния техники и своевременного выявления возможных неполадок.
+                """,
+                max_num=10,
+            ),
+            ThemesAndConcepts(
+                output=[
+                    "Обслуживание трактора",
+                    "Проверка давления в шинах",
+                    "Калибровка весов",
+                    "Модель AMAZONE ScalePro 200",
+                    "Система AMAZONE FieldManager",
+                    "Метрики эффективности",
+                    "Расход топлива",
+                    "Время работы двигателя",
+                    "Вес трактора",
+                    "Мониторинг состояния техники"
+                ]
+            ),
+        ),
     ]
 
 

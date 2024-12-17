@@ -458,7 +458,7 @@ class TestsetGenerator:
             testsets.append(TestsetSample(eval_sample=sample, **additional_info))
         testset = Testset(samples=testsets, cost_cb=cost_cb)
         testset_generation_rm.on_chain_end({"testset": testset})
-x
+
         # tracking how many samples were generated
         track(
             TestsetGenerationEvent(

@@ -1,7 +1,5 @@
 import typing as t
-
 from pydantic import BaseModel
-
 from ragas.prompt import PydanticPrompt
 from ragas.testset.persona import Persona
 
@@ -21,15 +19,57 @@ class GeneratedQueryAnswer(BaseModel):
 
 class QueryAnswerGenerationPrompt(PydanticPrompt[QueryCondition, GeneratedQueryAnswer]):
     instruction: str = (
-        "Generate a query and answer based on the specified conditions (persona, term, style, length) "
-        "and the provided context. Ensure the answer is entirely faithful to the context, using only the information "
-        "directly from the provided context."
-        "### Instructions:\n"
-        "1. **Generate a Query**: Based on the context, persona, term, style, and length, create a question "
-        "that aligns with the persona's perspective and incorporates the term.\n"
-        "2. **Generate an Answer**: Using only the content from the provided context, construct a detailed answer "
-        "to the query. Do not add any information not included in or inferable from the context.\n"
-        "### Example Outputs:\n\n"
+        "Сгенерируйте запрос и ответ на основе заданных условий (персона, термин, стиль, длина) "
+        "и предоставленного контекста. Убедитесь, что ответ полностью соответствует контексту, используя только информацию "
+        "прямо из предоставленного контекста."
+        "### Инструкции:\n"
+        "1. **Сгенерировать запрос**: Исходя из контекста, персоны, термина, стиля и длины, создайте вопрос, "
+        "соответствующий перспективе персоны и включающий термин.\n"
+        "2. **Сгенерировать ответ**: Используя только содержимое предоставленного контекста, создайте подробный ответ "
+        "на запрос. Не добавляйте никакой информации, которая отсутствует в контексте или не может быть выведена из него.\n"
+        "### Пример выходных данных:\n\n"
     )
     input_model: t.Type[QueryCondition] = QueryCondition
     output_model: t.Type[GeneratedQueryAnswer] = GeneratedQueryAnswer
+    examples: t.List[t.Tuple[QueryCondition, GeneratedQueryAnswer]] = [
+        (
+            QueryCondition(
+                persona=Persona(
+                    name="Технический специалист",
+                    role_description="Отвечает за техническое обслуживание и настройку оборудования AMAZONE."
+                ),
+                term="Техническое обслуживание",
+                query_style="Формальный",
+                query_length="Краткий",
+                context=[
+                    "Комбайн AMAZONE AFS 800 оснащен системой GPS для точного позиционирования на поле.",
+                    "Регулярное техническое обслуживание включает проверку уровня масла и работу сенсоров YieldMaster для мониторинга урожайности.",
+                    "Использование GPS позволяет оптимизировать маршруты уборки и повышать эффективность работы комбайна."
+                ]
+            ),
+            GeneratedQueryAnswer(
+                query="Какие ключевые аспекты включает техническое обслуживание комбайна AMAZONE AFS 800?",
+                answer="Техническое обслуживание комбайна AMAZONE AFS 800 включает проверку уровня масла, работу сенсоров YieldMaster для мониторинга урожайности и обеспечение функционирования системы GPS для оптимизации маршрутов уборки."
+            ),
+        ),
+        (
+            QueryCondition(
+                persona=Persona(
+                    name="Менеджер по работе с клиентами",
+                    role_description="Обеспечивает поддержку пользователей и отвечает на их вопросы по эксплуатации техники AMAZONE."
+                ),
+                term="Поддержка пользователей",
+                query_style="Дружелюбный",
+                query_length="Средний",
+                context=[
+                    "Менеджеры по работе с клиентами обеспечивают поддержку пользователей техники AMAZONE, помогая с интеграцией систем AMAZONE Control и проведением обучающих сессий для операторов.",
+                    "Интеграция систем позволяет пользователям эффективно управлять параметрами оборудования и получать своевременные обновления программного обеспечения.",
+                    "Обучение операторов включает практические занятия по использованию сенсоров YieldMaster и систем мониторинга урожайности."
+                ]
+            ),
+            GeneratedQueryAnswer(
+                query="Как менеджеры по работе с клиентами помогают пользователям эффективно использовать технику AMAZONE?",
+                answer="Менеджеры по работе с клиентами помогают пользователям эффективно использовать технику AMAZONE, обеспечивая поддержку при интеграции систем AMAZONE Control, проводя обучающие сессии для операторов и предоставляя помощь в использовании сенсоров YieldMaster и систем мониторинга урожайности."
+            ),
+        ),
+    ]
